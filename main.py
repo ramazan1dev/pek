@@ -1,10 +1,11 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from datetime import datetime
 import os
 
@@ -139,7 +140,7 @@ async def restart(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
 
 # Команда /итог
-@dp.message(commands=["итог"])
+@dp.message(Command("итог"))
 async def total_salary(message: types.Message):
     user_id = message.from_user.id
     if user_id in user_data and user_data[user_id]["history"]:
@@ -153,7 +154,7 @@ async def total_salary(message: types.Message):
         await message.answer("🤷‍♂️ У тебя пока нет сохранённых зарплат.")
 
 # Команда /сброс
-@dp.message(commands=["сброс"])
+@dp.message(Command("сброс"))
 async def reset_salary(message: types.Message):
     user_id = message.from_user.id
     user_data[user_id] = {"history": []}
