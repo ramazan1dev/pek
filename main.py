@@ -5,7 +5,6 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from datetime import datetime
 import os
 
@@ -35,13 +34,27 @@ role_kb = ReplyKeyboardMarkup(
     one_time_keyboard=True
 )
 
+# Меню действий после расчёта
+actions_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🔁 Посчитать ещё", callback_data="restart"),
+            InlineKeyboardButton(text="➕ Добавить ещё ЗП", callback_data="add_more")
+        ],
+        [
+            InlineKeyboardButton(text="🧮 Общая сумма", callback_data="show_total"),
+            InlineKeyboardButton(text="🧹 Обнулить всё", callback_data="reset_all")
+        ]
+    ]
+)
+
 # /start
 @dp.message(CommandStart())
 async def start(message: types.Message, state: FSMContext):
     await message.answer(
-        "👋 Ассаламу алейкум!\n\n"
+        "👋 Ассаламу алейкум! с вами Бот Рамазана\n\n"
         "Это бот для подсчета твоей (никому не нужной 😁) зарплаты за день в Пекариусе 💸\n\n"
-        "👉 Выбери свою роль в Пекариусе:",
+        "👉 Выбери свою роль в Пекариусе:\nк примеру дохлый офик",
         reply_markup=role_kb
     )
     await state.set_state(SalaryInput.role)
@@ -107,12 +120,6 @@ async def get_sales(message: types.Message, state: FSMContext):
             user_data[user_id] = {"history": []}
         user_data[user_id]["history"].append(total)
 
-        restart_kb = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="🔁 Посчитать ещё", callback_data="restart")]
-            ]
-        )
-
         await message.answer(
             f"📊 *Твоя пакъирская зарплата за {date}:*\n\n"
             f"🧑‍💼 *Должность:* `{role}`\n"
@@ -123,7 +130,7 @@ async def get_sales(message: types.Message, state: FSMContext):
             f"───────────────\n"
             f"🔹 *Итого:* `{total:.2f}₽`",
             parse_mode="Markdown",
-            reply_markup=restart_kb
+            reply_markup=actions_kb
         )
 
         await state.clear()
@@ -131,12 +138,42 @@ async def get_sales(message: types.Message, state: FSMContext):
     except ValueError:
         await message.answer("❌ Введи число, например: 5000")
 
-# Кнопка "посчитать ещё"
+# Кнопка "Посчитать ещё"
 @dp.callback_query(lambda c: c.data == "restart")
 async def restart(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.answer("🔄 Посчитаем заново!\n\n👉 Выбери свою должность:", reply_markup=role_kb)
     await state.set_state(SalaryInput.role)
+    await callback.answer()
+
+# ➕ Добавить ещё ЗП
+@dp.callback_query(lambda c: c.data == "add_more")
+async def add_more(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("➕ Добавим ещё одну ЗП!\n\n👉 Выбери свою должность:", reply_markup=role_kb)
+    await state.set_state(SalaryInput.role)
+    await callback.answer()
+
+# 🧮 Общая сумма
+@dp.callback_query(lambda c: c.data == "show_total")
+async def show_total(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    if user_id in user_data and user_data[user_id]["history"]:
+        all_salaries = user_data[user_id]["history"]
+        total = sum(all_salaries)
+        await callback.message.answer(
+            f"💰 Общая сумма всех добавленных ЗП: `{total:.2f}₽`\nЗаписей: {len(all_salaries)}",
+            parse_mode="Markdown"
+        )
+    else:
+        await callback.message.answer("🤷‍♂️ Пока что нет сохранённых ЗП.")
+    await callback.answer()
+
+# 🧹 Обнулить всё
+@dp.callback_query(lambda c: c.data == "reset_all")
+async def reset_all(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    user_data[user_id] = {"history": []}
+    await callback.message.answer("🧹 Вся история зарплат удалена!")
     await callback.answer()
 
 # Команда /итог
