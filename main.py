@@ -35,7 +35,7 @@ role_kb = ReplyKeyboardMarkup(
 async def start(message: types.Message, state: FSMContext):
     await message.answer(
         "👋 Ассаламу алейкум!\n\n"
-        "Это бот для подсчета твой (никому не нужной😁)зарплаты за день в Пекариусе 💸\n"
+        "Это бот для подсчета твоей (никому не нужной😁)зарплаты за день в Пекариусе 💸\n"
         "в дальнейшем он должен быть крутым,ну а пока что ленивый Рамазан создал только это 'чудо'"
         "👉 Выбери свою роль в Пекариусе:"
         "К примеру Дохлый офик,там внизу кнопка есть",
@@ -56,7 +56,7 @@ async def get_hours(message: types.Message, state: FSMContext):
     try:
         hours = float(message.text)
         await state.update_data(hours=hours)
-        await message.answer("💵 Какая у тебя ставка в час? Ну процент да")
+        await message.answer("💵 Какая у тебя ставка в час? ")
         await state.set_state(SalaryInput.rate)
     except ValueError:
         await message.answer("❌ Введи да число говорю же, пример: 8")
@@ -67,10 +67,10 @@ async def get_rate(message: types.Message, state: FSMContext):
     try:
         rate = float(message.text)
         await state.update_data(rate=rate)
-        await message.answer("📈 Сколько процентов с продаж ты получаешь?😉\nЕсли нет — введи 0.")
+        await message.answer("📈 Сколько процентов с продаж ты получаешь?(Ну процент да😉)\nЕсли нет — введи 0.")
         await state.set_state(SalaryInput.percent)
     except ValueError:
-        await message.answer("❌ Введи число мал, пример: 300")
+        await message.answer("❌ Введи число слитно анчоус, пример: 300")
 
 # Процент
 @dp.message(SalaryInput.percent)
@@ -121,7 +121,7 @@ async def get_sales(message: types.Message, state: FSMContext):
         await state.clear()
 
     except ValueError:
-        await message.answer("❌ Введи число нормально, пример: 5000")
+        await message.answer("❌ Введи число нормально(слитно и без всякиз точек и тд), пример: 5000")
 
 # Начать заново
 @dp.callback_query(lambda c: c.data == "restart")
