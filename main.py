@@ -7,10 +7,14 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime
 import os
+
 API_TOKEN = os.getenv("API_TOKEN")
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
+
+# Хранилище данных пользователей
+user_data = {}
 
 # Состояния
 class SalaryInput(StatesGroup):
@@ -35,10 +39,8 @@ role_kb = ReplyKeyboardMarkup(
 async def start(message: types.Message, state: FSMContext):
     await message.answer(
         "👋 Ассаламу алейкум!\n\n"
-        "Это бот для подсчета твоей (никому не нужной😁)зарплаты за день в Пекариусе 💸\n"
-        "в дальнейшем он должен быть крутым,ну а пока что ленивый Рамазан создал только это 'чудо'"
-        "👉 Выбери свою роль в Пекариусе:"
-        "К примеру Дохлый офик,там внизу кнопка есть",
+        "Это бот для подсчета твоей (никому не нужной 😁) зарплаты за день в Пекариусе 💸\n\n"
+        "👉 Выбери свою роль в Пекариусе:",
         reply_markup=role_kb
     )
     await state.set_state(SalaryInput.role)
@@ -56,10 +58,10 @@ async def get_hours(message: types.Message, state: FSMContext):
     try:
         hours = float(message.text)
         await state.update_data(hours=hours)
-        await message.answer("💵 Какая у тебя ставка в час? ")
+        await message.answer("💵 Какая у тебя ставка в час?")
         await state.set_state(SalaryInput.rate)
     except ValueError:
-        await message.answer("❌ Введи да число говорю же, пример: 8")
+        await message.answer("❌ Введи число, например: 8")
 
 # Ставка
 @dp.message(SalaryInput.rate)
@@ -67,10 +69,10 @@ async def get_rate(message: types.Message, state: FSMContext):
     try:
         rate = float(message.text)
         await state.update_data(rate=rate)
-        await message.answer("📈 Какой у тебя процент от кассы?😉)\nЕсли нет — введи 0.")
+        await message.answer("📈 Какой у тебя процент от кассы?\nЕсли нет — введи 0.")
         await state.set_state(SalaryInput.percent)
     except ValueError:
-        await message.answer("❌ Введи число слитно анчоус, пример: 300")
+        await message.answer("❌ Введи число, например: 300")
 
 # Процент
 @dp.message(SalaryInput.percent)
@@ -81,23 +83,28 @@ async def get_percent(message: types.Message, state: FSMContext):
         await message.answer("💰 На какую сумму ты сегодня продал? (касса твоя)\nЕсли нет — введи 0.")
         await state.set_state(SalaryInput.sales)
     except ValueError:
-        await message.answer("❌ Введи число ваяяя, пример: 5000 ну типо слитно короче")
+        await message.answer("❌ Введи число, например: 5000")
 
 # Продажи
 @dp.message(SalaryInput.sales)
 async def get_sales(message: types.Message, state: FSMContext):
     try:
         sales = float(message.text)
-        user_data = await state.get_data()
-        role = user_data["role"]
-        hours = user_data["hours"]
-        rate = user_data["rate"]
-        percent = user_data["percent"]
+        data = await state.get_data()
+        role = data["role"]
+        hours = data["hours"]
+        rate = data["rate"]
+        percent = data["percent"]
 
         base_pay = hours * rate
         bonus = (percent / 100) * sales
         total = base_pay + bonus
         date = datetime.now().strftime("%d.%m.%Y")
+        user_id = message.from_user.id
+
+        if user_id not in user_data:
+            user_data[user_id] = {"history": []}
+        user_data[user_id]["history"].append(total)
 
         restart_kb = InlineKeyboardMarkup(
             inline_keyboard=[
@@ -121,15 +128,36 @@ async def get_sales(message: types.Message, state: FSMContext):
         await state.clear()
 
     except ValueError:
-        await message.answer("❌ Введи число нормально(слитно и без всякиз точек и тд), пример: 5000")
+        await message.answer("❌ Введи число, например: 5000")
 
-# Начать заново
+# Кнопка "посчитать ещё"
 @dp.callback_query(lambda c: c.data == "restart")
 async def restart(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
-    await callback.message.answer("🔄 Посчитаем заново!\n\n👉 Выбери свою бедную должность:", reply_markup=role_kb)
+    await callback.message.answer("🔄 Посчитаем заново!\n\n👉 Выбери свою должность:", reply_markup=role_kb)
     await state.set_state(SalaryInput.role)
     await callback.answer()
+
+# Команда /итог
+@dp.message(commands=["итог"])
+async def total_salary(message: types.Message):
+    user_id = message.from_user.id
+    if user_id in user_data and user_data[user_id]["history"]:
+        all_salaries = user_data[user_id]["history"]
+        total = sum(all_salaries)
+        await message.answer(
+            f"💰 Общая сумма зарплаты: `{total:.2f}₽`\n\nЗаписей: {len(all_salaries)}",
+            parse_mode="Markdown"
+        )
+    else:
+        await message.answer("🤷‍♂️ У тебя пока нет сохранённых зарплат.")
+
+# Команда /сброс
+@dp.message(commands=["сброс"])
+async def reset_salary(message: types.Message):
+    user_id = message.from_user.id
+    user_data[user_id] = {"history": []}
+    await message.answer("🗑️ Все сохранённые зарплаты сброшены!")
 
 # Запуск
 async def main():
