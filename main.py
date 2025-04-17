@@ -39,7 +39,7 @@ actions_kb = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="🔁 Посчитать ещё", callback_data="restart"),
-            InlineKeyboardButton(text="➕ Добавить ещё ЗП", callback_data="add_more")
+            InlineKeyboardButton(text="➕ + еще смена", callback_data="add_more")
         ],
         [
             InlineKeyboardButton(text="🧮 Общая сумма", callback_data="show_total"),
