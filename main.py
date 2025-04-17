@@ -6,9 +6,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime
-
-# 🔐 ВСТАВЬ СВОЙ ТОКЕН СЮДА
-API_TOKEN = "7083246117:AAHlFXXsswI-gOB5DleP5GomDwJ4VBPswPM"
+import os
+API_TOKEN = os.getenv("API_TOKEN")"
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
