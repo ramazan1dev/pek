@@ -67,7 +67,7 @@ async def get_rate(message: types.Message, state: FSMContext):
     try:
         rate = float(message.text)
         await state.update_data(rate=rate)
-        await message.answer("📈 Сколько процентов с продаж ты получаешь?(Ну процент да😉)\nЕсли нет — введи 0.")
+        await message.answer("📈 Какой у тебя процент от кассы?😉)\nЕсли нет — введи 0.")
         await state.set_state(SalaryInput.percent)
     except ValueError:
         await message.answer("❌ Введи число слитно анчоус, пример: 300")
